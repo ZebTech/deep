@@ -138,3 +138,23 @@ def load_paino_midi():
         valid = dataset['valid']
         test = dataset['test']
         return train, valid, test
+
+
+def load_nottingham_midi():
+    """Load and return the piano midi dataset (sequential).
+
+    :reference: http://www-etud.iro.umontreal.ca/~boulanni/icml2012
+
+    Each datapoint is a 28x28 image of a digit.
+
+    =================   ==============
+    Classes                         10
+    Samples per class             ~350
+    Samples total                33000
+    Dimensionality                 784
+    Features                floats 0-1
+    =================   ==============
+
+    """
+    with gzip.open(join(module_path, 'midi', 'nottingham_midi.pkl.gz')) as data_file:
+        return cPickle.load(data_file)
