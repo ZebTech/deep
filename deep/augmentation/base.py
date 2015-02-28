@@ -65,10 +65,8 @@ class RandomPatch(Augmentation):
 
         patches = []
         for x in X:
-
-            if x.ndim == 1:
-                size = int(np.sqrt(len(x)))
-                x = x.reshape((size, size))
+            size = int(np.sqrt(len(x)))
+            x = x.reshape((size, size))
 
             height, width = x.shape
             height_offset = np.random.randint(height - self.patch_size + 1)
@@ -105,26 +103,6 @@ class RandomRotation(Augmentation):
         return np.asarray(rotated).reshape(n_samples, -1)
 
 
-class Rotate(Augmentation):
-
-    def __call__(self, X, y):
-
-        n_samples, n_features = X.shape
-        dim = int(np.sqrt(n_features))
-        X = X.reshape(-1, dim, dim)
-
-        X_90 = np.rot90(X.T, 1).T.reshape(n_samples, n_features)
-        X_180 = np.rot90(X.T, 1).T.reshape(n_samples, n_features)
-        X_270 = np.rot90(X.T, 1).T.reshape(n_samples, n_features)
-        X = X.reshape(n_samples, n_features)
-
-        X = np.vstack((X, X_90, X_180, X_270))
-        y = np.hstack((y, y, y, y))
-
-        return X, y
-
-
-
 class RandomRotation90(Augmentation):
     """
 
@@ -144,6 +122,26 @@ class RandomRotation90(Augmentation):
             rotations = np.random.randint(4)
             rotated.append(np.rot90(x, rotations))
         return np.asarray(rotated).reshape(n_samples, -1)
+
+
+class RandomReflection(Augmentation):
+
+    def __call__(self, X):
+        n_samples = len(X)
+
+        reflected = []
+        for x in X:
+
+            if x.ndim == 1:
+                size = int(np.sqrt(len(x)))
+                x = x.reshape((size, size))
+
+            if np.random.randint(2):
+               reflected.append(np.fliplr(x))
+            else:
+                reflected.append(x)
+
+        return np.asarray(reflected).reshape(n_samples, -1)
 
 
 class Resize(Augmentation):
@@ -190,21 +188,29 @@ class Reshape(Augmentation):
         return np.asarray(reshaped, dtype=config.floatX).reshape(n_samples, -1)
 
 
-class HorizontalReflection(Augmentation):
+class Plankton(Augmentation):
 
-    def __call__(self, X, y):
+    def transform(self, X, reflect=True, rotate=True):
+        n_samples = len(X)
 
-        n_samples, n_features = X.shape
-        dim = int(np.sqrt(n_features))
-        X = X.reshape(-1, dim, dim)
+        augmented = []
+        for x in X:
+            if x.ndim == 1:
+                size = int(np.sqrt(len(x)))
+                x = x.reshape((size, size))
 
-        X_lr = np.fliplr(X).reshape(n_samples, n_features)
-        X = X.reshape(n_samples, n_features)
+            #: 50% prob to reflect
+            if np.random.randint(2):
+                x = np.fliplr(x)
 
-        X = np.vstack((X, X_lr))
-        y = np.hstack((y, y))
+            #: randomly rotate
+            rotation = np.random.randint(4)
+            x = np.rot90(x, rotation)
+            augmented.append(x)
 
-        return X, y
+        return np.asarray(augmented).reshape(n_samples, -1)
+
+
 
 def augmented_predict():
     raise NotImplementedError
