@@ -31,7 +31,6 @@ def _print_iter(iteration, train_cost, valid_cost, elapsed):
 
 #: separate X, y givens to combine these
 def supervised_givens(i, x, X, y, Y, batch_size):
-    Y = shared(np.asarray(Y, dtype='int64'))
     batch_start = i * batch_size
     batch_end = (i+1) * batch_size
     return {x: X[batch_start:batch_end],
@@ -78,8 +77,7 @@ class Iterative(object):
 
         if self.augment is not None:
             X_clean = X
-            for augment in self.augment:
-                X = augment.fit_transform(X)
+            X = self.augment.fit_transform(X)
 
         #: moved this here because need to fit model
         #: to post augmented data (patch changes dims)
@@ -91,7 +89,8 @@ class Iterative(object):
         #: moved this here because need to update it
         #: for continuous augmentation
         X = shared(np.asarray(X, dtype=config.floatX))
-        train_function = self.compile_train_function(model, X, y)
+        Y = shared(np.asarray(y, dtype='int64'))
+        train_function = self.compile_train_function(model, X, Y)
 
         #: hack so prediction compiles without corruption
         for layer in model.layers:
@@ -127,10 +126,7 @@ class Iterative(object):
                 break
 
             if self.augment is not None:
-                A = X_clean
-                for augment in self.augment:
-                    A = augment.fit_transform(A)
-                X.set_value(A)
+                X.set_value(self.augment.fit_transform(X_clean))
 
         if self.best_model is not None:
             return self.best_model
@@ -147,8 +143,8 @@ class Iterative(object):
 
 class EarlyStopping(Iterative):
 
-    def __init__(self, patience=1, n_iterations=100, batch_size=128):
-        super(EarlyStopping, self).__init__(n_iterations, batch_size)
+    def __init__(self, patience=1, n_iterations=100, batch_size=128, augment=None):
+        super(EarlyStopping, self).__init__(n_iterations, batch_size, augment)
         self.patience = patience
 
     @property
