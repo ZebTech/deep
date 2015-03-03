@@ -45,7 +45,8 @@ def unsupervised_givens(i, x, X, batch_size):
 
 class Iterative(object):
 
-    def __init__(self, n_iterations=100, batch_size=128, augment=None):
+    def __init__(self, n_iterations=100, batch_size=128, augment=None, X_test=None):
+        self.X_test = X_test
         self.n_iterations = n_iterations
         self.batch_size = batch_size
         self.augment = augment
@@ -75,9 +76,28 @@ class Iterative(object):
 
     def fit(self, model, X, y=None, X_valid=None, y_valid=None):
 
+        #: passing in X_test since we need to normalize with it
+
         if self.augment is not None:
-            X_clean = X
-            X = self.augment.fit_transform(X)
+            begin = time.time()
+            X_clean = np.copy(X)
+
+            n_augmentations, n_samples, n_features = X_valid.shape
+            X_valid = X_valid.reshape(n_augmentations*n_samples, n_features)
+            X = np.vstack([self.augment.fit_transform(X_clean) for i in range(n_augmentations)])
+            y = np.tile(y, n_augmentations)
+
+            from sklearn.preprocessing import StandardScaler
+            X = np.vstack((X, X_valid, self.X_test))
+            self.scaler = StandardScaler()
+            X = self.scaler.fit_transform(X)
+            self.X_test = X[-len(self.X_test):]
+            X_valid = X[-(len(X_valid) + len(self.X_test)):-len(self.X_test)]
+            X = X[:-(len(X_valid) + len(self.X_test))]
+            X_valid = X_valid.reshape(-1, n_samples, n_features)
+
+            print 'augmentation took', time.time() - begin
+
 
         #: moved this here because need to fit model
         #: to post augmented data (patch changes dims)
@@ -109,12 +129,18 @@ class Iterative(object):
 
             valid_cost = np.inf
             if X_valid is not None:
-                valid_cost = model.score(X_valid, y_valid)
+                batch_size = 100
+                n_valid_samples = len(X_valid)
+                n_valid_batches = n_valid_samples / batch_size
+                valid_cost = []
+                for batch in range(n_valid_batches+1):
+                    X_valid_batch = X_valid[:, batch*batch_size:(batch+1)*batch_size]
 
-            import copy
-            #: copy best parameters
-            if valid_cost < min(self.valid_scores):
-                self.best_model = copy.deepcopy(model)
+                    print X_valid_batch.shape
+
+                    y_valid_batch = y_valid[batch*batch_size:(batch+1)*batch_size]
+                    valid_cost.append(model.score(X_valid_batch, y_valid_batch))
+                valid_cost = np.mean(valid_cost)
 
             self.valid_scores.append(valid_cost)
 
@@ -126,12 +152,11 @@ class Iterative(object):
                 break
 
             if self.augment is not None:
-                X.set_value(self.augment.fit_transform(X_clean))
+                X_augmented = np.vstack([self.augment.fit_transform(X_clean) for i in range(n_augmentations)])
+                X_scaled = self.scaler.transform(X_augmented)
+                X.set_value(X_scaled)
 
-        if self.best_model is not None:
-            return self.best_model
-        else:
-            return model
+        return model
 
     @property
     def finished(self):
@@ -143,8 +168,8 @@ class Iterative(object):
 
 class EarlyStopping(Iterative):
 
-    def __init__(self, patience=1, n_iterations=100, batch_size=128, augment=None):
-        super(EarlyStopping, self).__init__(n_iterations, batch_size, augment)
+    def __init__(self, patience=1, n_iterations=100, batch_size=128, augment=None, X_test=None):
+        super(EarlyStopping, self).__init__(n_iterations, batch_size, augment, X_test)
         self.patience = patience
 
     @property

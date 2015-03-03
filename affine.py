@@ -26,18 +26,18 @@ def augment(x):
     rotation = np.random.randint(4)
     x = np.rot90(x, rotation)
 
-    #scale = np.random.uniform(1 / 1.4, 1.4, 2)
+    scale = np.random.uniform(1 / 1.2, 1.2, 2)
     #shear = np.random.uniform(-.4, .4)
-    #translation = np.random.uniform(-2, 2, 2)
+    translation = np.random.uniform(-8, 8, 2)
 
     #: full rotations don't work very well
     #: can probably just use reflections and rot90
     #: rotation = np.random.uniform(0, 2)
 
-    #from skimage.transform import warp, AffineTransform
-    #transform = AffineTransform(scale=None, shear=None, translation=translation)
-    #return warp(x, transform, mode='nearest')
-    return x
+    from skimage.transform import warp, AffineTransform
+    transform = AffineTransform(scale=scale, shear=None, translation=translation)
+    return warp(x, transform, mode='nearest')
+    #return x
 
 if __name__ == '__main__':
     from deep.datasets.load import load_plankton
