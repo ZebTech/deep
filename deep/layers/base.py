@@ -82,6 +82,33 @@ class Layer(object):
         return layer_name + '(shape=' + layer_shape + ')'
 
 
+class BatchNormalized(Layer):
+
+    @property
+    def params(self):
+        if self.activation.params is not None:
+            return self.W, self.scale, self.shift, self.activation.params
+        return self.W, self.scale, self.shift
+
+    def _symbolic_transform(self, X):
+
+        if self.corruption is not None:
+            X = self.corruption(X)
+
+        X = T.dot(X, self.W)
+        mean = T.mean(X, axis=0)
+        std = T.std(X, axis=0)
+        X = (X - mean) / std
+        return self.activation(self.scale * X + self.shift)
+
+    def fit(self, X):
+        size = X.shape[1], self.n_hidden
+        self.W = self.initialize.W(size)
+        self.shift = self.initialize.b(self.n_hidden)
+        self.scale = shared(np.ones(self.n_hidden, dtype=config.floatX))
+        return self
+
+
 #: need to clean these up
 class PreConv(object):
 

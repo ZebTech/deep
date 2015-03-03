@@ -1,4 +1,3 @@
-from base import Iterative, EarlyStopping
+from base import Iterative
 
-__all__ = ['Iterative',
-           'EarlyStopping']
+__all__ = ['Iterative']
