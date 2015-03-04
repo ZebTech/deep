@@ -14,7 +14,6 @@
 import numpy as np
 
 from time import time
-from compile import compile_train_function, compile_score_function
 
 
 class Iterative(object):
@@ -22,6 +21,8 @@ class Iterative(object):
     def __init__(self, n_iterations=100, batch_size=128):
         self.n_iterations = n_iterations
         self.batch_size = batch_size
+        self.train_costs = []
+        self.valid_costs = []
 
     def fit(self, model, X, y=None, X_valid=None, y_valid=None):
         n_train_batches = len(X) / self.batch_size
@@ -36,6 +37,8 @@ class Iterative(object):
             begin = time()
             train_cost = np.mean(map(train_function, range(n_train_batches)))
             valid_cost = np.mean(map(score_function, range(n_valid_batches)))
+            self.train_costs.append(train_cost)
+            self.valid_costs.append(valid_cost)
             elapsed = time() - begin
             _print_iter(iteration, train_cost, valid_cost, elapsed)
 

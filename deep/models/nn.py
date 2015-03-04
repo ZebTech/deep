@@ -15,7 +15,6 @@ import numpy as np
 import theano.tensor as T
 
 from deep.fit.base import Iterative
-from deep.fit.compile import compile_predict_function
 from deep.costs.base import NegativeLogLikelihood, PredictionError
 from deep.updates.base import GradientDescent
 
@@ -79,13 +78,35 @@ class NN(object):
         X = self.predict_proba(X)
         return -np.mean(np.log(X)[np.arange(y.shape[0]), y])
 
-    def fit(self, X, y=None, X_valid=None, y_valid=None):
-        X = np.asarray(X, dtype='float32')
+    def fit(self, X_train, y_train=None, X_valid=None, y_valid=None):
 
-        batch = X[:1]
+        n_train_batches = len(X_train) / self.fit_method.batch_size
+        n_valid_batches = len(X_valid) / self.fit_method.batch_size
+
+        X_train = np.asarray(X_train, dtype='float32')
+        batch = X_train[:1]
         for layer in self.layers:
             batch = layer.fit_transform(batch)
-        return self.fit_method.fit(self, X, y, X_valid, y_valid)
+
+        from deep.fit.function import compile_batch_function
+        train_batch_function = compile_batch_function(X_train, y_train, self._symbolic_score, self.fit_method.batch_size, self._symbolic_updates)
+        valid_batch_function = compile_batch_function(X_valid, y_valid, self._symbolic_score, self.fit_method.batch_size)
+
+        from deep.fit.function import BatchIterator
+        train_batch_iterator = BatchIterator(train_batch_function, n_train_batches)
+        valid_batch_iterator = BatchIterator(valid_batch_function, n_valid_batches)
+
+        from deep.fit.function import EpochIterator
+        train_epoch_iterator = EpochIterator(train_batch_iterator)
+        #valid_epoch_iterator = EpochIterator(valid_batch_iterator)
+
+        for train_cost in train_epoch_iterator:
+            print train_cost
+
+        #for train_cost, valid_cost in zip(train_epoch_iterator, valid_epoch_iterator):
+        #    print train_cost, valid_cost
+
+        return self
 
     def __str__(self):
         hyperparams = ("""
