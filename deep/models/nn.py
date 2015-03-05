@@ -57,13 +57,13 @@ class NN(object):
         return T.argmax(self._symbolic_predict_proba(x), axis=1)
 
     def _symbolic_score(self, x, y):
-        from deep.costs import NegativeLogLikelihood
         # for plankton
-        #cost = NegativeLogLikelihood()
-        #return cost(self._symbolic_predict_proba(x), y)
+        from deep.costs import NegativeLogLikelihood
+        cost = NegativeLogLikelihood()
+        return cost(self._symbolic_predict_proba(x), y)
 
-        cost = PredictionError()
-        return cost(self._symbolic_predict(x), y)
+        #cost = PredictionError()
+        #return cost(self._symbolic_predict(x), y)
 
 
     def predict_proba(self, X):

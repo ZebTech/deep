@@ -17,27 +17,20 @@ class plankton_augment():
 
 
 def augment(x):
-    #: random reflection
-    reflect = np.random.randint(2)
-    if reflect:
-        x = np.fliplr(x)
+    #reflect = np.random.randint(2)
+    #if reflect:
+    #    x = np.fliplr(x)
 
-    #: random rotation
-    rotation = np.random.randint(4)
-    x = np.rot90(x, rotation)
+    #rotation = np.random.randint(4)
+    #x = np.rot90(x, rotation)
 
-    scale = np.random.uniform(1 / 1.2, 1.2, 2)
+    #scale = np.random.uniform(1 / 1.1, 1.1, 2)
     #shear = np.random.uniform(-.4, .4)
-    translation = np.random.uniform(-8, 8, 2)
-
-    #: full rotations don't work very well
-    #: can probably just use reflections and rot90
-    #: rotation = np.random.uniform(0, 2)
+    translation = np.random.uniform(-6, 6, 2)
 
     from skimage.transform import warp, AffineTransform
-    transform = AffineTransform(scale=scale, shear=None, translation=translation)
+    transform = AffineTransform(scale=None, shear=None, translation=translation)
     return warp(x, transform, mode='nearest')
-    #return x
 
 if __name__ == '__main__':
     from deep.datasets.load import load_plankton
