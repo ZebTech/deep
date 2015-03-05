@@ -14,19 +14,20 @@
 import numpy as np
 import theano.tensor as T
 
-from deep.fit.base import Iterative
 from deep.costs.base import NegativeLogLikelihood, PredictionError
 from deep.updates.base import GradientDescent
 
 
 class NN(object):
 
-    def __init__(self, layers, learning_rate=10, update=GradientDescent(),
-                 fit=Iterative(), cost=NegativeLogLikelihood(), regularize=None):
+    def __init__(self, layers, n_epochs=100, batch_size=128, learning_rate=0.1,
+                 update=GradientDescent(), cost=NegativeLogLikelihood(),
+                 regularize=None):
         self.layers = layers
+        self.n_epochs = n_epochs
+        self.batch_size = batch_size
         self.learning_rate = learning_rate
         self.update = update
-        self.fit_method = fit
         self.cost = cost
         self.regularize = regularize
 
@@ -66,10 +67,10 @@ class NN(object):
 
 
     def predict_proba(self, X):
-        batch_size = self.fit_method.batch_size
-        n_batches = len(X) / batch_size
-        score_function = compile_predict_function(self, X, batch_size)
-        return np.mean(map(score_function, range(n_batches)))
+        n_batches = len(X) / self.batch_size
+        #: compile batch function needs to be tweaked for this to work
+        predict_proba_function = compile_batch_function(X, None, self._symbolic_predict_proba, self.batch_size)
+        return np.mean(map(predict_proba_function, range(n_batches)))
 
     def predict(self, X):
         return np.argmax(self.predict_proba(X), axis=1)
@@ -78,33 +79,41 @@ class NN(object):
         X = self.predict_proba(X)
         return -np.mean(np.log(X)[np.arange(y.shape[0]), y])
 
-    def fit(self, X_train, y_train=None, X_valid=None, y_valid=None):
+    def fit(self, X_train, y_train=None, X_valid=None, y_valid=None, augment=None):
+        if augment is not None:
+            augment = augmentation_generator(X_train, augment)
 
-        n_train_batches = len(X_train) / self.fit_method.batch_size
-        n_valid_batches = len(X_valid) / self.fit_method.batch_size
-
-        X_train = np.asarray(X_train, dtype='float32')
         batch = X_train[:1]
         for layer in self.layers:
             batch = layer.fit_transform(batch)
 
-        from deep.fit.function import compile_batch_function
-        train_batch_function = compile_batch_function(X_train, y_train, self._symbolic_score, self.fit_method.batch_size, self._symbolic_updates)
-        valid_batch_function = compile_batch_function(X_valid, y_valid, self._symbolic_score, self.fit_method.batch_size)
+        n_train_batches = len(X_train) / self.batch_size
+        n_valid_batches = len(X_valid) / self.batch_size
 
-        from deep.fit.function import BatchIterator
-        train_batch_iterator = BatchIterator(train_batch_function, n_train_batches)
-        valid_batch_iterator = BatchIterator(valid_batch_function, n_valid_batches)
+        #: where is the best place to wrap with shared since
+        #: we need access to shared to update
+        from theano import shared, config
+        X_train = shared(np.asarray(X_train, dtype=config.floatX))
+        y_train = shared(np.asarray(y_train, dtype='int64'))
 
-        from deep.fit.function import EpochIterator
-        train_epoch_iterator = EpochIterator(train_batch_iterator)
-        #valid_epoch_iterator = EpochIterator(valid_batch_iterator)
+        X_valid = shared(np.asarray(X_valid, dtype=config.floatX))
+        y_valid = shared(np.asarray(y_valid, dtype='int64'))
 
-        for train_cost in train_epoch_iterator:
-            print train_cost
+        train_batch_function = compile_batch_function(X_train, y_train, self._symbolic_score, self.batch_size, self._symbolic_updates)
+        valid_batch_function = compile_batch_function(X_valid, y_valid, self._symbolic_score, self.batch_size)
 
-        #for train_cost, valid_cost in zip(train_epoch_iterator, valid_epoch_iterator):
-        #    print train_cost, valid_cost
+        _print_header()
+
+        from time import time
+        for epoch in range(1, self.n_epochs+1):
+            begin = time()
+            train_cost = np.mean(map(train_batch_function, range(n_train_batches)))
+            valid_cost = np.mean(map(valid_batch_function, range(n_valid_batches)))
+
+            if augment is not None:
+                X_train.set_value(next(augment))
+
+            _print_iter(epoch, train_cost, valid_cost, time() - begin)
 
         return self
 
@@ -145,3 +154,40 @@ class NN(object):
 
         return hyperparams + layers
 
+
+def _print_header():
+    print("""
+  Epoch |  Train  |  Valid  |  Time
+--------|---------|---------|--------\
+""")
+
+
+def _print_iter(iteration, train_cost, valid_cost, elapsed):
+    print("  {:>5} | {:>7.4f} | {:>7.4f} | {:>4.1f}s".format(
+        iteration, train_cost, valid_cost, elapsed))
+
+
+#: not sure where to put these yet (utils?)
+def compile_batch_function(X, Y, score, batch_size=128, updates=None):
+        x = T.matrix()
+        y = T.lvector()
+        i = T.lscalar()
+
+        score = score(x, y)
+        if updates is not None:
+            updates = updates(x, y)
+
+        batch_start = i * batch_size
+        batch_end = (i+1) * batch_size
+
+        givens = dict()
+        givens[x] = X[batch_start:batch_end]
+        givens[y] = Y[batch_start:batch_end]
+
+        from theano import function
+        return function([i], score, None, updates, givens)
+
+
+def augmentation_generator(X, augment):
+    while True:
+        yield augment.fit_transform(X)
