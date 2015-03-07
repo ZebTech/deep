@@ -1,8 +1,9 @@
-from base import Linear, RectifiedLinear, ParametrizedRectifiedLinear, Sigmoid, Softmax, Tanh
+from base import Identity, Sigmoid, Softmax, Tanh
+from rectified import Rectified, Leaky
 
-__all__ = ['Linear',
-           'RectifiedLinear',
-           'ParametrizedRectifiedLinear',
+__all__ = ['Identity',
            'Sigmoid',
            'Softmax',
-           'Tanh']
+           'Tanh',
+           'Rectified',
+           'Leaky']

@@ -100,9 +100,13 @@ class NN(object):
         y_valid = shared(np.asarray(y_valid, dtype='int64'))
 
         train_batch_function = compile_batch_function(X_train, y_train, self._symbolic_score, self.batch_size, self._symbolic_updates)
+
+        for layer in self.layers:
+            layer.corruption = None
+
         valid_batch_function = compile_batch_function(X_valid, y_valid, self._symbolic_score, self.batch_size)
 
-        _print_header()
+        _print_header(self)
 
         from time import time
         for epoch in range(1, self.n_epochs+1):
@@ -126,7 +130,7 @@ class NN(object):
   Fit Method      | {:>s}
   Training Cost   | {:>s}
   Regularization  | {:>s}
-""").format(str(self.learning_rate), str(self.update), str(self.fit_method),
+""").format(str(self.learning_rate), str(self.update), str(None),
             str(self.cost), str(self.regularize))
 
         layers = """
@@ -155,7 +159,10 @@ class NN(object):
         return hyperparams + layers
 
 
-def _print_header():
+def _print_header(model):
+
+    print model
+
     print("""
   Epoch |  Train  |  Valid  |  Time
 --------|---------|---------|--------\

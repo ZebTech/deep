@@ -1,8 +1,7 @@
-from base import Binomial, Dropout, Gaussian, SaltAndPepper, Rotate, Shift
+from binary import Binomial, Dropout, SaltAndPepper
+from real import Gaussian
 
 __all__ = ['Binomial',
            'Dropout',
            'Gaussian',
-           'SaltAndPepper',
-           'Rotate',
-           'Shift']
+           'SaltAndPepper']

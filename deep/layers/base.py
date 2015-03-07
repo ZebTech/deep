@@ -91,11 +91,10 @@ class BatchNormalized(Layer):
         return self.W, self.scale, self.shift
 
     def _symbolic_transform(self, X):
-
         if self.corruption is not None:
             X = self.corruption(X)
-
         X = T.dot(X, self.W)
+
         mean = T.mean(X, axis=0)
         std = T.std(X, axis=0)
         X = (X - mean) / std
@@ -154,9 +153,8 @@ class PostConv(object):
 from theano.tensor.signal.downsample import max_pool_2d
 class Pooling(object):
 
-    def __init__(self, pool_size, stride_size):
+    def __init__(self, pool_size):
         self.pool_size = (pool_size, pool_size)
-        self.stride_size = stride_size
         self._transform_function = None
         self.x = T.tensor4()
 
@@ -175,7 +173,7 @@ class Pooling(object):
             self._transform_function = function([self.x], self._symbolic_transform(self.x))
         return self._transform_function(X)
 
-    def _symbolic_transform(self, x, noisy=None):
+    def _symbolic_transform(self, x):
         return max_pool_2d(x, self.pool_size)
 
 
@@ -189,7 +187,7 @@ class ConvolutionLayer(Layer):
     :param pool_size: the size of the subsampling pool.
     :param activation: the non-linearly to apply after pooling.
     """
-    def __init__(self, n_filters=10, filter_size=5, activation=Sigmoid(), corruption=None, initialize=Normal()):
+    def __init__(self, n_filters=32, filter_size=3, activation=Sigmoid(), corruption=None, initialize=Normal()):
         self.n_filters = n_filters
         self.filter_size = filter_size
         self.corruption = corruption
@@ -210,6 +208,33 @@ class ConvolutionLayer(Layer):
         size = self.n_filters, n_channels, self.filter_size, self.filter_size
         self.W = self.initialize.W(size)
         self.b = self.initialize.b(self.n_filters)
+        return self
+
+
+class BatchNormalizedConvolutional(ConvolutionLayer):
+
+    @property
+    def params(self):
+        if self.activation.params is not None:
+            return self.W, self.scale, self.shift, self.activation.params
+        return self.W, self.scale, self.shift
+
+    def _symbolic_transform(self, X):
+        if self.corruption is not None:
+            X = self.corruption(X)
+        X = conv2d(X, self.W, filter_shape=self.W.get_value().shape)
+
+        mean = T.mean(X, axis=0)
+        std = T.std(X, axis=0)
+        X = (X - mean) / std
+        return self.activation(self.scale.dimshuffle('x', 0, 'x', 'x') * X + self.shift.dimshuffle('x', 0, 'x', 'x'))
+
+    def fit(self, X):
+        n_channels = X.shape[1]
+        size = self.n_filters, n_channels, self.filter_size, self.filter_size
+        self.W = self.initialize.W(size)
+        self.shift = self.initialize.b(self.n_filters)
+        self.scale = shared(np.ones(self.n_filters, dtype=config.floatX))
         return self
 
 

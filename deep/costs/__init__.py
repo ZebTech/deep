@@ -1,7 +1,7 @@
-from base import (SquaredError, BinaryCrossEntropy, NegativeLogLikelihood,
-                  PredictionError)
+from supervised import NegativeLogLikelihood, PredictionError
+from unsupervised import BinaryCrossEntropy, SquaredError
 
-__all__ = ['SquaredError',
-           'BinaryCrossEntropy',
+__all__ = ['BinaryCrossEntropy',
            'NegativeLogLikelihood',
-           'PredictionError']
+           'PredictionError',
+           'SquaredError']
