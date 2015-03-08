@@ -60,10 +60,9 @@ class NN(object):
         raise NotImplementedError
 
     def fit_layers(self, shape):
-        try:
-            for layer in self.layers:
+        for layer in self.layers:
+            try:
                 shape = layer.shape
-        except AttributeError:
-            for layer in self.layers:
+            except AttributeError:
                 layer.fit(shape)
                 shape = layer.shape
