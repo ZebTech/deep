@@ -30,11 +30,13 @@ class TestNN(unittest.TestCase):
 
     def test_fit(self):
         self.nn.fit(X, y)
-        score = self.nn.train_scores[-1]
+        score = self.nn.fit_scores[-1]
         self.assertLess(score, 0.02)
+        print self.nn.fit_scores
 
-    def test_continue_fitting(self):
-        pass
+        self.nn.fit(X, y)
+        score = self.nn.fit_scores[-1]
+        self.assertEqual(score, 0)
 
     def test_fit_validate(self):
         pass

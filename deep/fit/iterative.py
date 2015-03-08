@@ -39,10 +39,9 @@ class Iterative(Fit):
         train = function([self.i], score, None, updates, givens)
         batches = len(X) / self.batch_size
 
-        model.train_scores = []
         for epoch in range(1, self.n_epochs+1):
             batch_scores = [train(batch) for batch in range(batches)]
-            model.train_scores.append(np.mean(batch_scores))
+            model.fit_scores.append(np.mean(batch_scores))
 
     def fit_validate_model(self, model, X, y, X_valid, y_valid):
         raise NotImplementedError

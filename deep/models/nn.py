@@ -14,6 +14,7 @@ class NN(object):
         self.learning_rate = learning_rate
         self.update = update
         self.cost = cost
+        self.fit_scores = []
         self.fit_model = fit_type.fit_model
         self.fit_validate_model = fit_type.fit_validate_model
 
@@ -59,6 +60,10 @@ class NN(object):
         raise NotImplementedError
 
     def fit_layers(self, shape):
-        for layer in self.layers:
-            layer.fit(shape)
-            shape = layer.shape
+        try:
+            for layer in self.layers:
+                shape = layer.shape
+        except AttributeError:
+            for layer in self.layers:
+                layer.fit(shape)
+                shape = layer.shape
