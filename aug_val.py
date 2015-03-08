@@ -7,21 +7,26 @@ from deep.augmentation import Reshape
 X, y = load_plankton()
 X = Reshape(48).fit_transform(X)
 X /= 255.0
+X -= .5
 
 X_test, y_test = load_plankton(test=True)
 X_test = Reshape(48).fit_transform(X_test)
 X_test /= 255.0
+X_test -= .5
 
 from sklearn.cross_validation import train_test_split
 X, X_valid, y, y_valid = train_test_split(X, y, test_size=.1)
 n_valid_samples, n_valid_features = X_valid.shape
 
-from affine import plankton_augment
-augment = plankton_augment()
-X_valid = np.vstack([augment.fit_transform(X_valid) for i in range(10)])
-X_valid = X_valid.reshape((-1, n_valid_samples, n_valid_features))
+# from affine import plankton_augment
+# augment = plankton_augment()
+# X_valid = np.vstack([augment.fit_transform(X_valid) for i in xrange(10)])
+# X_valid = X_valid.reshape((-1, n_valid_samples, n_valid_features))
 
-"""
+# X = np.vstack([augment.fit_transform(X) for i in xrange(10)])
+# y = np.tiles(y, 10)
+
+
 from affine import plankton_augment
 augment = plankton_augment()
 n_augmentations = 5
@@ -31,7 +36,8 @@ X_valid = np.vstack([augment.fit_transform(X_valid) for i in range(n_augmentatio
 
 from sklearn.preprocessing import StandardScaler
 X = np.vstack((X, X_valid))
-X = StandardScaler().fit_transform(X)
+scaler = StandardScaler()
+X = scaler.fit_transform(X)
 X_valid = X[-len(X_valid):]
 X = X[:-len(X_valid)]
 X_valid = X_valid.reshape(-1, n_valid_samples, n_valid_features)
@@ -40,48 +46,57 @@ print X.shape, y.shape
 print X_valid.shape, y_valid.shape
 
 print 'augmentation took', time() - begin
-"""
+
 
 from deep.layers import Layer, PreConv, Pooling, ConvolutionLayer, PostConv
 from deep.activations import RectifiedLinear, Softmax
-from deep.initialization import MSR
+from deep.initialization import MSR, Xavier
 from deep.corruptions import Dropout
 layers = [
-    PreConv(),
-    ConvolutionLayer(32, 3, RectifiedLinear(), initialize=MSR()),
-    Pooling(2, 2),
-    ConvolutionLayer(64, 3, RectifiedLinear(), initialize=MSR()),
-    Pooling(2, 2),
-    ConvolutionLayer(128, 3, RectifiedLinear(), initialize=MSR()),
-    Pooling(2, 2),
-    PostConv(),
-    Layer(2000, RectifiedLinear(), initialize=MSR()),
-    Layer(121, Softmax(), initialize=MSR())
+    #PreConv(),
+    #ConvolutionLayer(49, 3, RectifiedLinear(), initialize=MSR()),
+    #Pooling(2, 1),
+    #ConvolutionLayer(96, 3, RectifiedLinear(), Dropout(.4), initialize=MSR()),
+    #Pooling(3, 3),
+    #ConvolutionLayer(128, 5, RectifiedLinear(), Dropout(.4), initialize=MSR()),
+    #Pooling(3, 2),
+    #PostConv(),
+    #Layer(3000, RectifiedLinear(), Dropout(.68), initialize=MSR()),
+    Layer(2500, RectifiedLinear(), Dropout(.68), initialize=MSR()),
+    Layer(121, Softmax(), Dropout(.5), initialize=MSR())
 ]
 
 
 from deep.models import NN
-from deep.updates.base import Momentum
+from deep.updates.base import Momentum, NesterovMomentum
 from deep.regularizers import L2
 from deep.fit import Iterative
-nn = NN(layers, .01, Momentum(.9), Iterative(3, augment=augment, X_test=X_test), regularize=L2(.0005))
-nn.fit(X, y, X_valid, y_valid)
+import dill as pk
+import gzip
 
+nn = NN(layers, .01, NesterovMomentum(.9), Iterative(3), regularize=L2(.0005))
+with gzip.open('model.dill.gz', 'wb') as best:
+	pk.dump(nn, best, protocol=pk.HIGHEST_PROTOCOL)
+nn.fit(X, y, X_valid, y_valid)
+with gzip.open('model.dill.gz', 'wb') as best:
+	pk.dump(nn, best, protocol=pk.HIGHEST_PROTOCOL)
+
+print 'Predicting'
 #: break test into batch size to avoid memory overflow
 #: prediction averages over all types of fixed augmentation
-batch_size = 5000
+batch_size = 1
 n_test_samples = len(X_test)
 n_test_batches = n_test_samples / batch_size
 predictions = []
 for batch in range(n_test_batches+1):
 
-    print batch, '/', n_test_batches
+    #print batch, '/', n_test_batches
 
     X_test_batch = X_test[batch*batch_size:(batch+1)*batch_size]
     X_test_batch = np.asarray([augment.fit_transform(X_test_batch) for i in range(20)])
     X_test_batch_shape = X_test_batch.shape
     X_test_batch = np.vstack(X_test_batch)
-    X_test_batch = nn.fit_method.scaler.transform(X_test_batch)
+    X_test_batch = scaler.transform(X_test_batch)
     X_test_batch = X_test_batch.reshape(X_test_batch_shape)
     predictions.extend(nn.predict_proba(X_test_batch))
 

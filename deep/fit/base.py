@@ -84,7 +84,7 @@ class Iterative(object):
 
             n_augmentations, n_samples, n_features = X_valid.shape
             X_valid = X_valid.reshape(n_augmentations*n_samples, n_features)
-            X = np.vstack([self.augment.fit_transform(X_clean) for i in range(n_augmentations)])
+            X = np.vstack([self.augment.fit_transform(X_clean) for i in xrange(n_augmentations)])
             y = np.tile(y, n_augmentations)
 
             from sklearn.preprocessing import StandardScaler
