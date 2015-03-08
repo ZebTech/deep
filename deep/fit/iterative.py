@@ -43,5 +43,10 @@ class Iterative(Fit):
             batch_scores = [train(batch) for batch in range(batches)]
             model.fit_scores.append(np.mean(batch_scores))
 
+        model.predict = function([self.x], model._symbolic_predict(self.x))
+        model.predict_proba = function([self.x], model._symbolic_predict_proba(self.x))
+        model.score = function([self.x, self.y], model._symbolic_score(self.x, self.y))
+
+
     def fit_validate_model(self, model, X, y, X_valid, y_valid):
         raise NotImplementedError

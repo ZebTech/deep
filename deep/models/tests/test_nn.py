@@ -20,13 +20,16 @@ class TestNN(unittest.TestCase):
         cls.nn = NN(layers)
 
     def test_predict(self):
-        pass
+        self.nn.fit_layers(X.shape)
+        self.nn.predict(X[:1])
 
     def test_predict_proba(self):
-        pass
+        self.nn.fit_layers(X.shape)
+        self.nn.predict_proba(X[:1])
 
     def test_score(self):
-        pass
+        self.nn.fit_layers(X.shape)
+        self.nn.score(X[:1], y[:1])
 
     def test_fit(self):
         self.nn.fit(X, y)

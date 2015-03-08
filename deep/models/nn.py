@@ -42,14 +42,16 @@ class NN(object):
         return cost(self._symbolic_predict(x), y)
 
     def predict_proba(self, X):
-        raise NotImplementedError
+        raise AttributeError("'{}' model has not been fit yet."
+                             .format(self.__class__.__name__))
 
     def predict(self, X):
-        return np.argmax(self.predict_proba(X), axis=1)
+        raise AttributeError("'{}' model has not been fit yet."
+                             .format(self.__class__.__name__))
 
     def score(self, X, y):
-        X = self.predict_proba(X)
-        return -np.mean(np.log(X)[np.arange(y.shape[0]), y])
+        raise AttributeError("'{}' model has not been fit yet."
+                             .format(self.__class__.__name__))
 
     def fit(self, X, y):
         self.fit_layers(X.shape)
