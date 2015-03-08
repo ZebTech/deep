@@ -5,7 +5,6 @@ virtualenv:
   system_site_packages: true
 install: 
   - sudo apt-get install -qq python-numpy python-scipy
-  - pip install scikit-learn
   - pip install theano
 
 script:
