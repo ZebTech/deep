@@ -1,8 +1,7 @@
-from base import Layer, ConvolutionLayer, Transpose, Pooling, PreConv, PostConv
+from dense import Dense
+from convolutional import Convolutional
+from pooling import MaxPooling
 
-__all__ = ['Layer',
-           'ConvolutionLayer',
-           'Transpose',
-           'Pooling',
-           'PreConv',
-           'PostConv']
+__all__ = ['Convolutional',
+           'Dense',
+           'MaxPooling']

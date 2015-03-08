@@ -1,8 +1,10 @@
 import theano.tensor as T
-from abc import abstractmethod
+from abc import ABCMeta, abstractmethod
 
 
 class Activation(object):
+
+    __metaclass__ = ABCMeta
 
     @abstractmethod
     def __call__(self, X):

@@ -1,21 +1,8 @@
-# -*- coding: utf-8 -*-
-"""
-    deep.models.base
-    ---------------------
-
-    Implements the feed forward neural network model.
-
-    :references: theano deep learning tutorial
-
-    :copyright: (c) 2014 by Gabriel Pereyra.
-    :license: BSD, see LICENSE for more details.
-"""
-
 import numpy as np
 import theano.tensor as T
 
-from deep.costs.base import NegativeLogLikelihood, PredictionError
-from deep.updates.base import GradientDescent
+from deep.costs import NegativeLogLikelihood, PredictionError
+from deep.updates import GradientDescent
 
 
 class NN(object):

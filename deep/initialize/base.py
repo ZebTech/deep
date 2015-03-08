@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-    deep.initialization.base
+    deep.initialize.base
     ------------------------
 
-    Implements various initialization methods.
+    Implements various initialize methods.
 
     :copyright: (c) 2014 by Gabriel Pereyra.
     :license: BSD, see LICENSE for more details.
