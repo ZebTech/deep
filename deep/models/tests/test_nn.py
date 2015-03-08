@@ -32,8 +32,7 @@ class TestNN(unittest.TestCase):
         self.nn.fit(X, y)
         score = self.nn.fit_scores[-1]
         self.assertLess(score, 0.02)
-        print self.nn.fit_scores
-
+    
         self.nn.fit(X, y)
         score = self.nn.fit_scores[-1]
         self.assertEqual(score, 0)

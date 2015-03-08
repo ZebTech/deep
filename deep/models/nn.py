@@ -42,7 +42,7 @@ class NN(object):
         return cost(self._symbolic_predict(x), y)
 
     def predict_proba(self, X):
-        self._fit.compile_batch_function()
+        raise NotImplementedError
 
     def predict(self, X):
         return np.argmax(self.predict_proba(X), axis=1)
