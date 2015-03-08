@@ -3,7 +3,6 @@ import unittest
 
 from deep.datasets import load_mnist
 X, y = load_mnist()[1]
-X_valid, y_valid = load_mnist()[2]
 
 
 class TestNN(unittest.TestCase):
@@ -18,9 +17,10 @@ class TestNN(unittest.TestCase):
             Dense(10, Softmax())
         ]
         cls.nn = NN(layers)
+        cls.nn.fit(X, y)
 
     def test_predict(self):
-        pass
+        self.nn.predict(X[:1])
 
     def test_predict_proba(self):
         pass
@@ -29,17 +29,5 @@ class TestNN(unittest.TestCase):
         pass
 
     def test_fit(self):
-        self.nn.fit(X, y)
         score = self.nn._fit.train_scores[-1]
         self.assertLess(score, 0.02)
-
-    def test_continue_fitting(self):
-        pass
-
-    def test_fit_validate(self):
-        self.nn.fit(X, y)
-        score = self.nn._fit.train_scores[-1]
-        self.assertLess(score, 0.02)
-
-    def test_fit_layers(self):
-        pass

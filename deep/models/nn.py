@@ -9,12 +9,13 @@ from deep.fit import Iterative
 class NN(object):
 
     def __init__(self, layers, learning_rate=0.1, update=Momentum(),
-                 fit=Iterative(), cost=NegativeLogLikelihood()):
+                 fit_type=Iterative(), cost=NegativeLogLikelihood()):
         self.layers = layers
         self.learning_rate = learning_rate
         self.update = update
-        self._fit = fit
         self.cost = cost
+        self.fit_model = fit_type.fit_model
+        self.fit_validate_model = fit_type.fit_validate_model
 
     @property
     def params(self):
@@ -49,9 +50,15 @@ class NN(object):
         X = self.predict_proba(X)
         return -np.mean(np.log(X)[np.arange(y.shape[0]), y])
 
-    def fit(self, X, y, X_valid=None, y_valid=None):
-        shape = X.shape
+    def fit(self, X, y):
+        self.fit_layers(X.shape)
+        self.fit_model(self, X, y)
+        return self
+
+    def fit_validate(self, dataset):
+        raise NotImplementedError
+
+    def fit_layers(self, shape):
         for layer in self.layers:
             layer.fit(shape)
             shape = layer.shape
-        return self._fit(self, X, y, X_valid, y_valid)
