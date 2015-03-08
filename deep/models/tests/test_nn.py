@@ -1,11 +1,18 @@
 import unittest
+from deep.models import NN
+from deep.layers import *
+from deep.activations import *
 
 
 class TestNN(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        pass
+        layers = [
+            Dense(100),
+            Dense(10, Softmax())
+        ]
+        cls.nn = NN(layers)
 
     def test_predict(self):
         pass
@@ -17,4 +24,7 @@ class TestNN(unittest.TestCase):
         pass
 
     def test_fit(self):
-        pass
+        from deep.datasets import load_mnist
+        X, y = load_mnist()[1]
+        self.nn.fit(X, y)
+        self.assertLess(self.nn._fit.train_scores[-1], 1 - 0.98)
