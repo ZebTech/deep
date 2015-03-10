@@ -88,3 +88,8 @@ def load_svhn():
 
     """
     raise NotImplementedError
+
+
+def load_graham():
+    with gzip.open(join(module_path, 'graham', 'graham.pkl.gz')) as data_file:
+        return cPickle.load(data_file)
