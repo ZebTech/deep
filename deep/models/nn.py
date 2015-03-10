@@ -1,5 +1,6 @@
-import numpy as np
 import theano.tensor as T
+_x = T.matrix()
+_y = T.vector()
 
 from deep.costs import NegativeLogLikelihood, PredictionError
 from deep.updates import Momentum
@@ -42,16 +43,28 @@ class NN(object):
         return cost(self._symbolic_predict(x), y)
 
     def predict_proba(self, X):
-        raise AttributeError("'{}' model has not been fit yet."
-                             .format(self.__class__.__name__))
+        try:
+            return self._symbolic_predict_proba(_x).eval({_x: X})
+        except AttributeError:
+            raise AttributeError("'{}' model has not been fit yet. "
+                                 "Trying calling fit() or fit_layers()."
+                                 .format(self.__class__.__name__))
 
     def predict(self, X):
-        raise AttributeError("'{}' model has not been fit yet."
-                             .format(self.__class__.__name__))
+        try:
+            return self._symbolic_predict(_x).eval({_x: X})
+        except AttributeError:
+            raise AttributeError("'{}' model has not been fit yet. "
+                                 "Trying calling fit() or fit_layers()."
+                                 .format(self.__class__.__name__))
 
     def score(self, X, y):
-        raise AttributeError("'{}' model has not been fit yet."
-                             .format(self.__class__.__name__))
+        try:
+            return self._symbolic_score(_x, _y).eval({_x: X, _y: y})
+        except AttributeError:
+            raise AttributeError("'{}' model has not been fit yet. "
+                                 "Trying calling fit() or fit_layers()."
+                                 .format(self.__class__.__name__))
 
     def fit(self, X, y):
         self.fit_layers(X.shape)

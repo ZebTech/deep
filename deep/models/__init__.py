@@ -1,5 +1,5 @@
 from nn import NN
-from gnn import GNN
+from ae import AE
 
 __all__ = ['NN',
-           'GNN']
+           'AE']
