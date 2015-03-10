@@ -101,7 +101,6 @@ class AE(object):
         givens = self.fit_givens(X)
         return function([_i], score, None, updates, givens)
 
-
     def fit_validate(self, dataset):
         raise NotImplementedError
 
