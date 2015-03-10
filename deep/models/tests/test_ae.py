@@ -1,4 +1,5 @@
 import unittest
+import numpy as np
 from copy import deepcopy
 
 
@@ -24,13 +25,24 @@ class TestAE(unittest.TestCase):
         self.ae = AE(deepcopy(encoder), deepcopy(decoder))
 
     def test_transform(self):
-        pass
+        self.assertRaises(AttributeError, self.ae.transform, X[:1])
+        self.ae.fit_layers(X.shape)
+        self.ae.transform(X[:1])
 
     def test_inverse_transform(self):
-        pass
+        self.assertRaises(AttributeError, self.ae.inverse_transform, np.ones((1, 100)))
+        self.ae.fit_layers(X.shape)
+        self.ae.inverse_transform(np.ones((1, 100)))
+
+    def test_reconstruct(self):
+        self.assertRaises(AttributeError, self.ae.reconstruct, X[:1])
+        self.ae.fit_layers(X.shape)
+        self.ae.reconstruct(X[:1])
 
     def test_score(self):
-        pass
+        self.assertRaises(AttributeError, self.ae.score, X[:1])
+        self.ae.fit_layers(X.shape)
+        self.ae.score(X[:1])
 
     def test_fit(self):
         self.ae.fit(X)

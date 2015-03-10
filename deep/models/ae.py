@@ -51,20 +51,38 @@ class AE(object):
         return self.cost(reconstruct, x)
 
     def transform(self, X):
-        raise AttributeError("'{}' model has not been fit yet."
-                             .format(self.__class__.__name__))
+        try:
+            return self._symbolic_transform(_x).eval({_x: X})
+        except AttributeError:
+            raise AttributeError("'{}' model has not been fit yet. "
+                                 "Trying calling fit() or fit_layers()."
+                                 .format(self.__class__.__name__))
 
     def inverse_transform(self, X):
-        raise AttributeError("'{}' model has not been fit yet."
-                             .format(self.__class__.__name__))
+        try:
+            return self._symbolic_inverse_transform(_x).eval({_x: X})
+        except AttributeError:
+            raise AttributeError("'{}' model has not been fit yet. "
+                                 "Trying calling fit() or fit_layers()."
+                                 .format(self.__class__.__name__))
 
-    def reconstruct(self, X, y):
-        raise AttributeError("'{}' model has not been fit yet."
-                             .format(self.__class__.__name__))
+    def reconstruct(self, X):
+        try:
+            transform = self._symbolic_transform(_x)
+            reconstruct = self._symbolic_inverse_transform(transform)
+            return reconstruct.eval({_x: X})
+        except AttributeError:
+            raise AttributeError("'{}' model has not been fit yet. "
+                                 "Trying calling fit() or fit_layers()."
+                                 .format(self.__class__.__name__))
 
-    def score(self, X, y):
-        raise AttributeError("'{}' model has not been fit yet."
-                             .format(self.__class__.__name__))
+    def score(self, X, y=None):
+        try:
+            return self._symbolic_score(_x).eval({_x: X})
+        except AttributeError:
+            raise AttributeError("'{}' model has not been fit yet. "
+                                 "Trying calling fit() or fit_layers()."
+                                 .format(self.__class__.__name__))
 
     def fit(self, X):
         self.fit_layers(X.shape)
