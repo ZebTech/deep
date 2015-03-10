@@ -13,7 +13,7 @@ class Iterative(Fit):
         self.y = T.lvector()
         self.i = T.lscalar()
 
-    def fit_model(self, model, X, y):
+    def fit_model(self, model, X, y=None):
         train = model.fit_function(X, y)
         batches = len(X) / self.batch_size
 

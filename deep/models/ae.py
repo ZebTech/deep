@@ -1,15 +1,24 @@
+import numpy as np
+import theano.tensor as T
+_x = T.matrix()
+_y = T.lvector()
+_i = T.lscalar()
+
+
 from deep.fit import Iterative
 from deep.costs import BinaryCrossEntropy
-from deep.updates import GradientDescent
+from deep.updates import Momentum
+from theano import function, shared, config
 
 
 class AE(object):
 
-    def __init__(self, encoder, decoder=None, learning_rate=10, update=GradientDescent(),
-                 fit_type=Iterative(), cost=BinaryCrossEntropy()):
+    def __init__(self, encoder, decoder=None, learning_rate=10, batch_size=128,
+                 update=Momentum(), fit_type=Iterative(), cost=BinaryCrossEntropy()):
         self.encoder = encoder
         self.decoder = decoder or []
         self.learning_rate = learning_rate
+        self.batch_size = batch_size
         self.update = update
         self.cost = cost
         self.fit_scores = []
@@ -61,6 +70,19 @@ class AE(object):
         self.fit_layers(X.shape)
         self.fit_model(self, X)
         return self
+
+    def fit_givens(self, X, y=None):
+        batch_start = _i * self.batch_size
+        batch_end = (_i+1) * self.batch_size
+        X = shared(np.asarray(X, dtype=config.floatX))
+        return {_x: X[batch_start:batch_end]}
+
+    def fit_function(self, X, y=None):
+        score = self._symbolic_score(_x)
+        updates = self._symbolic_updates(_x)
+        givens = self.fit_givens(X)
+        return function([_i], score, None, updates, givens)
+
 
     def fit_validate(self, dataset):
         raise NotImplementedError
