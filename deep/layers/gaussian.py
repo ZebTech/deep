@@ -17,7 +17,8 @@ class Gaussian(Layer):
     def __call__(self, X):
         mean = self.activation(T.dot(X, self.W_mean) + self.b_mean)
         var = self.activation(T.dot(X, self.W_var) + self.b_var)
-        return self.rng.normal(mean.shape, mean, var)
+        noise = self.rng.normal(mean.shape)
+        return mean + noise * var
 
     def fit(self, incoming_shape):
         size = incoming_shape[1], self.n_hidden
