@@ -24,6 +24,11 @@ class TestRNN(unittest.TestCase):
         self.rnn.fit_layers(X[0].shape)
         self.rnn.predict(X[0])
 
+    def test_score(self):
+        self.assertRaises(AttributeError, self.rnn.score, X[0], y[0])
+        self.rnn.fit_layers(X[0].shape)
+        self.rnn.score(X[0], y[0])
+
     def test_fit(self):
         self.rnn.fit(X, y)
         print self.rnn.fit_scores

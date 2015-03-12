@@ -6,7 +6,6 @@ _i = T.lscalar()
 
 import theano
 import numpy as np
-import matplotlib.pyplot as plt
 
 from deep.updates import GradientDescent
 from deep.fit import Iterative
@@ -56,6 +55,16 @@ class RNN(NN):
 
     def _symbolic_score(self, x, y):
         return ((y - self._symbolic_predict(x)) ** 2).mean(axis=0).sum()
+
+    def score(self, X, y):
+        try:
+            x = T.matrix()
+            t = T.scalar()
+            return self._symbolic_score(x, t).eval({x: X, t: y})
+        except AttributeError:
+            raise AttributeError("'{}' model has not been fit yet. "
+                                 "Trying calling fit() or fit_layers()."
+                                 .format(self.__class__.__name__))
 
     def fit(self, X, y):
         self.fit_layers(X[0].shape)
