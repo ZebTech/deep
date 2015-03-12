@@ -9,7 +9,7 @@ from deep.models import RNN
 from deep.layers import Dense, Recurrent
 from deep.activations import Identity, Sigmoid
 recurrent_layers = Recurrent(50, Sigmoid())
-output_layers = Dense(1, Identity())
+output_layers = [Dense(1, Identity())]
 
 
 class TestRNN(unittest.TestCase):

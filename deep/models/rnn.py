@@ -5,39 +5,7 @@ import theano.tensor as T
 import numpy as np
 import matplotlib.pyplot as plt
 
-
-from deep.layers.base import Layer
 from deep.updates import GradientDescent
-from deep.initialize import Normal
-
-
-class RecurrentLayer(Layer):
-
-    def __init__(self, n_hidden, activation, initialize=Normal()):
-        self.n_hidden = n_hidden
-        self.activation = activation
-        self.initialize = initialize
-
-    def __call__(self, X, H):
-        return self.activation(T.dot(H, self.W_hidden) + T.dot(X, self.W_visible) + self.b)
-
-    def fit(self, incoming_shape):
-        size = self.n_hidden, self.n_hidden
-        self.W_hidden = self.initialize.W(size)
-        size = incoming_shape[1], self.n_hidden
-        self.W_visible = self.initialize.W(size)
-        self.b = self.initialize.b(self.n_hidden)
-        return self
-
-    @property
-    def params(self):
-        if self.activation.params is not None:
-            return self.W_visible, self.W_hidden, self.b, self.activation.params
-        return self.W_visible, self.W_hidden, self.b
-
-    @property
-    def shape(self):
-        return self.W_visible.get_value().shape
 
 
 class RNN(NN):
@@ -53,11 +21,16 @@ class RNN(NN):
 
     @property
     def params(self):
-        return list(self.recurrent_layer.params) + list(self.output_layer.params)
+        output_params = [param for layer in self.output_layer for param in layer.params]
+        return list(self.recurrent_layer.params) + output_params
 
     def _symbolic_predict(self, x):
         h, _ = theano.scan(self.recurrent_layer, x, [self.h0_tm1])
-        return self.output_layer(h[-1])
+
+        x = h[-1]
+        for layer in self.output_layer:
+            x = layer(x)
+        return x
 
     def _symbolic_score(self, x, y):
         return ((y - self._symbolic_predict(x)) ** 2).mean(axis=0).sum()
@@ -75,7 +48,10 @@ class RNN(NN):
 
         self.recurrent_layer.fit(X[0].shape)
         shape = self.recurrent_layer.shape
-        self.output_layer.fit(shape)
+
+        for layer in self.output_layer:
+            layer.fit(shape)
+            shape = layer.shape
 
         cost = self._symbolic_score(x, t)
         updates = self._symbolic_updates(x, t)
