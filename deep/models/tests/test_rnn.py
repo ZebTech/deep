@@ -19,6 +19,11 @@ class TestRNN(unittest.TestCase):
         self.rnn = RNN(deepcopy(output_layers), deepcopy(recurrent_layers),
                        fit_type=Iterative(batch_size=1))
 
+    def test_predict(self):
+        self.assertRaises(AttributeError, self.rnn.predict, X[0])
+        self.rnn.fit_layers(X[0].shape)
+        self.rnn.predict(X[0])
+
     def test_fit(self):
         self.rnn.fit(X, y)
         print self.rnn.fit_scores

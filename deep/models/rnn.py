@@ -63,10 +63,10 @@ class RNN(NN):
         return self
 
     def fit_function(self, X, y):
-        cost = self._symbolic_score(_x, _y)
+        score = self._symbolic_score(_x, _y)
         updates = self._symbolic_updates(_x, _y)
         givens = self.fit_givens(X, y)
-        return theano.function([_i], cost, updates=updates, givens=givens)
+        return theano.function([_i], score, None, updates, givens)
 
     def fit_givens(self, X, y):
         givens = dict()
