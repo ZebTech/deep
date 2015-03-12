@@ -36,59 +36,33 @@ class RecurrentLayer(Layer):
 
     @property
     def shape(self):
-        return self.W.get_value().shape
+        return self.W_visible.get_value().shape
 
 
 class RNN(NN):
 
-    def recurrent_layer(self, n_hidden, nin, rng):
-        self.W_uh = np.asarray(rng.normal(size=(nin, n_hidden), scale=.01, loc=.0), dtype=theano.config.floatX)
-        self.W_hh = np.asarray(rng.normal(size=(n_hidden, n_hidden), scale=.01, loc=.0), dtype=theano.config.floatX)
-        self.b_hh = np.zeros((n_hidden,), dtype=theano.config.floatX)
-        self.W_uh = theano.shared(self.W_uh, 'W_uh')
-        self.W_hh = theano.shared(self.W_hh, 'W_hh')
-        self.b_hh = theano.shared(self.b_hh, 'b_hh')
-        self.activ = T.nnet.sigmoid
-        self.recurrent_params = [self.W_hh, self.W_uh, self.b_hh]
-
-    def __init__(self, nin, n_hidden, output_layer, update=GradientDescent()):
+    def __init__(self, output_layer, recurent_layer, update=GradientDescent()):
         self.update = update
-        self.h0_tm1 = theano.shared(np.zeros(n_hidden, dtype=theano.config.floatX))
 
-        rng = np.random.RandomState(1234)
+        #: 50 = n_hidden (should this go in recurrent layer?
+        self.h0_tm1 = theano.shared(np.zeros(50, dtype=theano.config.floatX))
+
         self.lr = T.scalar()
-        x = T.matrix()
-        y = T.scalar()
-
 
         self.output_layer = output_layer
-        shape = 10, n_hidden
-        self.output_layer.fit(shape)
+        self.recurrent_layer_ = recurent_layer
 
-        from deep.activations import Sigmoid
-        self.recurrent_layer_ = RecurrentLayer(n_hidden, Sigmoid())
-        shape = 10, nin
-        self.recurrent_layer_.fit(shape)
-
-
-        self.recurrent_layer(n_hidden, nin, rng)
-
-        cost = self._symbolic_score(x, y)
-        updates = self._symbolic_updates(x, y)
-        self.train_step = theano.function([x, y, self.lr], cost, updates=updates)
 
     @property
     def params(self):
         return list(self.recurrent_layer_.params) + list(self.output_layer.params)
-        #return self.recurrent_params + list(self.output_layer.params)
 
     def _symbolic_predict(self, x):
-        h, _ = theano.scan(self.recurrent_fn, x, [self.h0_tm1])
+        h, _ = theano.scan(self.recurrent_layer_, x, [self.h0_tm1])
         return self.output_layer(h[-1])
 
     def _symbolic_score(self, x, y):
-        cost = ((y - self._symbolic_predict(x)) ** 2).mean(axis=0).sum()
-        return cost
+        return ((y - self._symbolic_predict(x)) ** 2).mean(axis=0).sum()
 
     def _symbolic_updates(self, x, y):
         cost = self._symbolic_score(x, y)
@@ -97,11 +71,18 @@ class RNN(NN):
             updates.extend(self.update(cost, param, self.lr))
         return updates
 
-    def recurrent_fn(self, u_t, h_tm1):
-        return self.recurrent_layer_(u_t, h_tm1)
-        #return self.activ(T.dot(h_tm1, self.W_hh) + T.dot(u_t, self.W_uh) + self.b_hh)
-
     def fit(self, X, y):
+        x = T.matrix()
+        t = T.scalar()
+
+        self.recurrent_layer_.fit(X[0].shape)
+        shape = self.recurrent_layer_.shape
+        self.output_layer.fit(shape)
+
+        cost = self._symbolic_score(x, t)
+        updates = self._symbolic_updates(x, t)
+        self.train_step = theano.function([x, t, self.lr], cost, updates=updates)
+
         vals = []
         for i in range(10):
             for x, y_ in zip(X, y):
@@ -113,9 +94,9 @@ class RNN(NN):
 
 if __name__ == '__main__':
     from deep.layers import Dense
-    from deep.activations import Identity
+    from deep.activations import Identity, Sigmoid
 
-    rnn = RNN(2, 50, Dense(1, Identity()))
+    rnn = RNN(Dense(1, Identity()), RecurrentLayer(50, Sigmoid()))
     lr = 0.0001
 
     X = np.random.rand(100, 100, 2)
