@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 
 
 from deep.layers.base import Layer
+from deep.updates import GradientDescent
 
 
 class RecurrentLayer(Layer):
@@ -37,48 +38,66 @@ class RecurrentLayer(Layer):
 
 class RNN(NN):
 
-    def __init__(self, nin, n_hidden, nout):
+    def softmax_layer(self, n_hidden, nout, rng):
+        self.W = np.asarray(rng.normal(size=(n_hidden, nout), scale=.01, loc=0.0), dtype=theano.config.floatX)
+        self.b = np.zeros((nout,), dtype=theano.config.floatX)
+        self.W = theano.shared(self.W, 'W_hy')
+        self.b = theano.shared(self.b, 'b_hy')
 
-        rng = np.random.RandomState(1234)
-        lr = T.scalar()
-        x = T.matrix()
-        t = T.scalar()
-
+    def recurrent_layer(self, n_hidden, nin, rng):
         self.W_uh = np.asarray(rng.normal(size=(nin, n_hidden), scale=.01, loc=.0), dtype=theano.config.floatX)
         self.W_hh = np.asarray(rng.normal(size=(n_hidden, n_hidden), scale=.01, loc=.0), dtype=theano.config.floatX)
         self.b_hh = np.zeros((n_hidden,), dtype=theano.config.floatX)
         self.W_uh = theano.shared(self.W_uh, 'W_uh')
         self.W_hh = theano.shared(self.W_hh, 'W_hh')
         self.b_hh = theano.shared(self.b_hh, 'b_hh')
-
-        self.W_hy = np.asarray(rng.normal(size=(n_hidden, nout), scale=.01, loc=0.0), dtype=theano.config.floatX)
-        self.b_hy = np.zeros((nout,), dtype=theano.config.floatX)
-        self.W_hy = theano.shared(self.W_hy, 'W_hy')
-        self.b_hy = theano.shared(self.b_hy, 'b_hy')
-
         self.activ = T.nnet.sigmoid
+        self.h0_tm1 = theano.shared(np.zeros(n_hidden, dtype=theano.config.floatX))
 
-        h0_tm1 = theano.shared(np.zeros(n_hidden, dtype=theano.config.floatX))
+    def __init__(self, nin, n_hidden, nout, update=GradientDescent()):
+        self.update = update
 
-        h, _ = theano.scan(self.recurrent_fn, sequences=x,
-                           outputs_info=[h0_tm1],
-                           non_sequences=[self.W_hh, self.W_uh, self.W_hy, self.b_hh])
+        #: output layer
+        from deep.layers import Dense
+        from deep.activations import Identity
+        self.output_layer = Dense(nout, Identity())
+        shape = 10, n_hidden
+        self.output_layer.fit(shape)
 
-        y = T.dot(h[-1], self.W_hy) + self.b_hy
+        rng = np.random.RandomState(1234)
+        self.lr = T.scalar()
+        x = T.matrix()
+        y = T.scalar()
 
+        self.recurrent_layer(n_hidden, nin, rng)
 
-        cost = ((t - y) ** 2).mean(axis=0).sum()
-        gW_hh, gW_uh, gW_hy, gb_hh, gb_hy = T.grad(cost, [self.W_hh, self.W_uh, self.W_hy, self.b_hh, self.b_hy])
-        self.train_step = theano.function([x, t, lr], cost,
-                                          on_unused_input='warn',
-                                          updates=[(self.W_hh, self.W_hh - lr * gW_hh),
-                                                   (self.W_uh, self.W_uh - lr * gW_uh),
-                                                   (self.W_hy, self.W_hy - lr * gW_hy),
-                                                   (self.b_hh, self.b_hh - lr * gb_hh),
-                                                   (self.b_hy, self.b_hy - lr * gb_hy)],
-                                          allow_input_downcast=True)
+        cost = self._symbolic_score(x, y)
+        updates = self._symbolic_updates(x, y)
+        self.train_step = theano.function([x, y, self.lr], cost, updates=updates)
 
-    def recurrent_fn(self, u_t, h_tm1, W_hh, W_uh, W_hy, b_hh):
+    @property
+    def params(self):
+        return [self.W_hh, self.W_uh, self.b_hh] + list(self.output_layer.params)
+        #return [self.W_hh, self.W_uh, self.W, self.b_hh, self.b]
+
+    def _symbolic_predict(self, x):
+        h, _ = theano.scan(self.recurrent_fn, x, [self.h0_tm1], [self.W_hh, self.W_uh, self.b_hh])
+
+        return self.output_layer(h[-1])
+        #return T.dot(h[-1], self.W) + self.b
+
+    def _symbolic_score(self, x, y):
+        cost = ((y - self._symbolic_predict(x)) ** 2).mean(axis=0).sum()
+        return cost
+
+    def _symbolic_updates(self, x, y):
+        cost = self._symbolic_score(x, y)
+        updates = list()
+        for param in self.params:
+            updates.extend(self.update(cost, param, self.lr))
+        return updates
+
+    def recurrent_fn(self, u_t, h_tm1, W_hh, W_uh, b_hh):
         h_t = self.activ(T.dot(h_tm1, W_hh) + T.dot(u_t, W_uh) + b_hh)
         return h_t
 
@@ -93,6 +112,7 @@ class RNN(NN):
 
 
 if __name__ == '__main__':
+
     rnn = RNN(2, 50, 1)
     lr = 0.0001
 
