@@ -2,6 +2,7 @@ from dense import Dense
 from convolutional import Convolutional
 from pooling import MaxPooling
 from corruption import Binomial, Dropout, Gaussian, SaltAndPepper
+from recurrent import Recurrent
 
 __all__ = ['Convolutional',
            'Dense',
@@ -9,4 +10,5 @@ __all__ = ['Convolutional',
            'Binomial',
            'Dropout',
            'Gaussian',
-           'SaltAndPepper']
+           'SaltAndPepper',
+           'Recurrent']
