@@ -9,17 +9,21 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from deep.updates import GradientDescent
+from deep.fit import Iterative
 from theano import shared, config
 
 
 class RNN(NN):
 
     def __init__(self, output_layers, recurrent_layers,
-                 learning_rate=0.0001, update=GradientDescent()):
+                 learning_rate=0.0001, update=GradientDescent(),
+                 fit_type=Iterative()):
         self.update = update
         self.learning_rate = learning_rate
         self.output_layers = output_layers
         self.recurrent_layers = recurrent_layers
+        self.fit_scores = []
+        self.fit_model = fit_type.fit_model
 
         #: 50 = n_hidden (should this go in recurrent layer?)
         self.h0_tm1 = theano.shared(np.zeros(50, dtype=theano.config.floatX))
@@ -55,20 +59,14 @@ class RNN(NN):
 
     def fit(self, X, y):
         self.fit_layers(X[0].shape)
+        self.fit_model(self, X, y)
+        return self
+
+    def fit_function(self, X, y):
         cost = self._symbolic_score(_x, _y)
         updates = self._symbolic_updates(_x, _y)
         givens = self.fit_givens(X, y)
-        self.train_step = theano.function([_i], cost, updates=updates, givens=givens)
-
-        vals = []
-        for i in range(10):
-            #for x, y_ in zip(X, y):
-            #    c = self.train_step(x, y_)
-            for j in range(len(X)):
-                c = self.train_step(j)
-                vals.append(c)
-            plt.plot(vals)
-        plt.show()
+        return theano.function([_i], cost, updates=updates, givens=givens)
 
     def fit_givens(self, X, y):
         givens = dict()
